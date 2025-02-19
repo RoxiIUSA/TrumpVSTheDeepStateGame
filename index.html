@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trump vs. Deep State</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <link rel="icon" href="data:,">
+</head>
+<body>
+    <script>
+        console.log("Script started");
+        let ship;
+        let bullets = [];
+        let asteroids = [];
+        let trumpImg, hillaryImg, bidenImg, obamaImg, elonImg, dogeImg, gameOverImg;
+        let lastBlipTime = 0;
+        let blipInterval = 2000;
+        let gameOver = false;
+        let gameOverSoundPlayed = false;
+
+        function preload() {
+            console.log("Starting preload...");
+            trumpImg = loadImage('trump.png');
+            console.log("Loaded trump.png");
+            hillaryImg = loadImage('hillary.png');
+            console.log("Loaded hillary.png");
+            bidenImg = loadImage('biden.png');
+            console.log("Loaded biden.png");
+            obamaImg = loadImage('obama.png');
+            console.log("Loaded obama.png");
+            elonImg = loadImage('elon.png');
+            console.log("Loaded elon.png");
+            dogeImg = loadImage('doge.png');
+            console.log("Loaded doge.png");
+            gameOverImg = loadImage('gameover2.png');
+            console.log("Loaded gameover2.png");
+            console.log("Preload finished");
+        }
+
+        function setup() {
+            createCanvas(800, 600);
+            ship = new Ship();
+            for (let i = 0; i < 5; i++) {
+                asteroids.push(new Asteroid());
+            }
+            console.log("Setup complete");
+        }
+
+        function draw() {
+            background(0);
+
+            if (!gameOver) {
+                ship.show();
+                ship.move();
+
+                let currentTime = millis();
+                let asteroidCount = asteroids.length;
+                blipInterval = map(asteroidCount, 5, 1, 2000, 750);
+                if (currentTime - lastBlipTime >= blipInterval) {
+                    let blip = new Audio('blip2.mp4');
+                    blip.volume = 0.5;
+                    blip.play().catch(error => console.log("Blip error:", error));
+                    console.log("Blip at interval:", blipInterval, "ms");
+                    lastBlipTime = currentTime;
+                }
+
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    bullets[i].show();
+                    bullets[i].move();
+                    for (let j = asteroids.length - 1; j >= 0; j--) {
+                        if (bullets[i].hits(asteroids[j])) {
+                            console.log("Asteroid hit at", i, j);
+                            let explosion = new Audio('explode2.mp4');
+                            explosion.volume = 1.0;
+                            explosion.play().catch(error => console.log("Explosion error:", error));
+                            asteroids.splice(j, 1);
+                            bullets.splice(i, 1);
+                            break;
+                        }
+                    }
+                }
+
+                for (let i = 0; i < asteroids.length; i++) {
+                    asteroids[i].show();
+                    asteroids[i].move();
+                }
+
+                if (asteroids.length === 0 && !gameOverSoundPlayed) {
+                    gameOver = true;
+                    let gameOverSound = new Audio('gameover2audio.mp3');
+                    gameOverSound.volume = 1.0;
+                    gameOverSound.play().catch(error => console.log("Game over sound error:", error));
+                    gameOverSoundPlayed = true;
+                    console.log("Game over! All asteroids destroyed.");
+                }
+            } else {
+                imageMode(CENTER);
+                image(gameOverImg, width / 2, height / 2, 800, 600); // Updated to full screen size
+            }
+        }
+
+        function keyPressed() {
+            if (!gameOver) {
+                if (key === ' ') {
+                    bullets.push(new Bullet(ship.pos.x, ship.pos.y, "Elon"));
+                    console.log("Firing Elon");
+                    let firing = new Audio('firing2.mp4');
+                    firing.volume = 0.7;
+                    firing.play().catch(error => console.log("Firing error:", error));
+                }
+                if (key === 'd') {
+                    bullets.push(new Bullet(ship.pos.x, ship.pos.y, "Doge"));
+                    console.log("Firing Doge");
+                    let firing = new Audio('firing2.mp4');
+                    firing.volume = 0.7;
+                    firing.play().catch(error => console.log("Firing error:", error));
+                }
+                if (keyCode === RIGHT_ARROW) {
+                    ship.rotate(0.1);
+                    console.log("Rotating right, angle:", ship.angle);
+                }
+                if (keyCode === LEFT_ARROW) {
+                    ship.rotate(-0.1);
+                    console.log("Rotating left, angle:", ship.angle);
+                }
+                if (keyCode === UP_ARROW) {
+                    ship.boost();
+                    console.log("Boosting, velocity:", ship.vel.x, ship.vel.y);
+                }
+            }
+        }
+
+        class Ship {
+            constructor() {
+                this.pos = createVector(width / 2, height / 2);
+                this.r = 20;
+                this.angle = 0;
+                this.vel = createVector(0, 0);
+            }
+
+            show() {
+                push();
+                translate(this.pos.x, this.pos.y);
+                rotate(this.angle);
+                fill(255);
+                triangle(-this.r, this.r, this.r, this.r, 0, -this.r);
+                imageMode(CENTER);
+                image(trumpImg, 0, 0, this.r * 2, this.r * 2);
+                pop();
+            }
+
+            move() {
+                this.pos.add(this.vel);
+                this.vel.mult(0.95);
+                console.log("Ship position:", this.pos.x, this.pos.y, "Velocity:", this.vel.x, this.vel.y);
+                if (this.pos.x > width) this.pos.x = 0;
+                if (this.pos.x < 0) this.pos.x = width;
+                if (this.pos.y > height) this.pos.y = 0;
+                if (this.pos.y < 0) this.pos.y = height;
+            }
+
+            rotate(dir) {
+                this.angle += dir;
+            }
+
+            boost() {
+                let force = p5.Vector.fromAngle(this.angle);
+                force.mult(1.0);
+                this.vel.add(force);
+            }
+        }
+
+        class Bullet {
+            constructor(x, y, type) {
+                this.pos = createVector(x, y);
+                this.vel = p5.Vector.fromAngle(ship.angle);
+                this.vel.mult(5);
+                this.type = type;
+                this.img = (type === "Elon") ? elonImg : dogeImg;
+            }
+
+            show() {
+                push();
+                translate(this.pos.x, this.pos.y);
+                imageMode(CENTER);
+                image(this.img, 0, 0, 16, 16);
+                pop();
+            }
+
+            move() {
+                this.pos.add(this.vel);
+            }
+
+            hits(asteroid) {
+                let d = dist(this.pos.x, this.pos.y, asteroid.pos.x, asteroid.pos.y);
+                return d < (asteroid.r + 10);
+            }
+        }
+
+        class Asteroid {
+            constructor() {
+                this.pos = createVector(random(width), random(height));
+                this.vel = p5.Vector.random2D();
+                this.r = 30;
+                this.face = random([hillaryImg, bidenImg, obamaImg]);
+            }
+
+            show() {
+                push();
+                translate(this.pos.x, this.pos.y);
+                noFill();
+                stroke(255);
+                ellipse(0, 0, this.r * 2, this.r * 2);
+                imageMode(CENTER);
+                image(this.face, 0, 0, this.r * 2, this.r * 2);
+                pop();
+            }
+
+            move() {
+                this.pos.add(this.vel);
+                if (this.pos.x > width) this.pos.x = 0;
+                if (this.pos.x < 0) this.pos.x = width;
+                if (this.pos.y > height) this.pos.y = 0;
+                if (this.pos.y < 0) this.pos.y = height;
+            }
+        }
+    </script>
+</body>
+</html>
